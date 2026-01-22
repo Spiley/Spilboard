@@ -224,20 +224,82 @@
 
         .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
 
-        /* Widget Selection Styles */
-        .widget-option {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 10px;
-            cursor: pointer; border: 1px solid transparent;
-        }
-        .widget-option.selected { border-color: var(--primary); background: rgba(0, 212, 255, 0.1); }
-        .check-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #555; display: flex; align-items: center; justify-content: center; }
-        .selected .check-circle { border-color: var(--primary); background: var(--primary); }
-        .check-circle::after { content: '✓'; color: black; font-size: 0.8rem; display: none; }
-        .selected .check-circle::after { display: block; }
 
-        @media (max-width: 600px) {
-            .widgets-grid { grid-template-columns: 1fr; }
-            .header { flex-direction: column; text-align: center; gap: 15px; }
-            #main-content { flex-direction: column; }
+        /* Widget Selection Styles */
+        #widget-options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .widget-option-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            border: 1px solid transparent;
+            overflow: hidden;
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            cursor: pointer;
+        }
+
+        .widget-header:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .widget-header.active {
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .check-circle {
+            width: 22px; height: 22px; 
+            border-radius: 50%; 
+            border: 2px solid #555; 
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .widget-option-item.selected {
+            border-color: var(--primary);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .widget-option-item.selected .check-circle {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        .check-circle::after {
+            content: '✓'; color: #000; font-weight: bold; font-size: 0.8rem; display: none;
+        }
+        .widget-option-item.selected .check-circle::after { display: block; }
+
+        /* Widget Config Panel (Inside the item) */
+        .widget-config {
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            display: none; /* Hidden by default unless selected */
+            animation: slideDown 0.3s ease;
+        }
+
+        .widget-option-item.selected .widget-config {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .widget-config label {
+            display: block; margin-bottom: 5px; font-size: 0.8rem; color: var(--text-secondary);
+        }
+        .widget-config select, .widget-config input {
+            width: 100%; padding: 8px; border-radius: 5px; 
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.4); color: white;
         }

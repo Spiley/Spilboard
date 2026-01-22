@@ -2,10 +2,12 @@ version: '3'
 services:
   dashboard:
     build: .
-    container_name: spilboard
+    container_name: my-dashboard
     restart: unless-stopped
+    privileged: true 
     ports:
-      - "80:80"  # change port if needed ("8080:80")
+      - "80:80"
     volumes:
-      # where data saves
       - ./data:/app/data
+      #  uncomment this is temp is not working:
+      # - /sys/class/thermal:/sys/class/thermal:ro
