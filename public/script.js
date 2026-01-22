@@ -17,7 +17,8 @@ let dashboardData = {
         bgValue: 'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop'
     }
 };
-
+let tempWeatherLoc = null; 
+let searchTimeout = null;  
 const widgetDefinitions = [
     { id: 'weather', name: 'Weather', icon: 'fas fa-cloud-sun', type: 'weather' },
     { id: 'cpu', name: 'CPU Load', icon: 'fas fa-microchip', type: 'bar' },
@@ -390,20 +391,36 @@ function closeSettingsModal() { document.getElementById('settingsModal').style.d
 
 async function saveSettings() {
     // 1. Weather Logic
-    const city = document.getElementById('settingCity').value;
-    if(city && city !== dashboardData.settings.weatherCity) {
+    const inputCity = document.getElementById('settingCity').value;
+    
+    // Hebben we een stad gekozen uit de lijst?
+    if (tempWeatherLoc && tempWeatherLoc.name === inputCity) {
+        // Ja, gebruik de precieze data uit de lijst
+        dashboardData.settings.weatherCity = tempWeatherLoc.name;
+        dashboardData.settings.weatherLat = tempWeatherLoc.lat;
+        dashboardData.settings.weatherLon = tempWeatherLoc.lon;
+    } 
+    // Nee, maar de tekst is wel veranderd? Dan zoeken we "blind" de eerste hit
+    else if (inputCity && inputCity !== dashboardData.settings.weatherCity) {
         try {
-            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${inputCity}&count=1&language=en&format=json`);
             const data = await res.json();
             if(data.results && data.results.length > 0) {
-                dashboardData.settings.weatherCity = data.results[0].name;
-                dashboardData.settings.weatherLat = data.results[0].latitude;
-                dashboardData.settings.weatherLon = data.results[0].longitude;
+                const loc = data.results[0];
+                dashboardData.settings.weatherCity = loc.name;
+                dashboardData.settings.weatherLat = loc.latitude;
+                dashboardData.settings.weatherLon = loc.longitude;
+            } else {
+                alert("City not found. Please try selecting from the list.");
+                return; // Stop opslaan
             }
-        } catch(e) {}
+        } catch(e) {
+            alert("Error searching city.");
+            return;
+        }
     }
 
-    // 2. Background Logic
+    // 2. Background Logic (ongewijzigd, maar wel nodig)
     const bgType = document.getElementById('bgType').value;
     dashboardData.settings.bgType = bgType;
 
@@ -421,6 +438,83 @@ async function saveSettings() {
     closeSettingsModal();
     renderWidgets(); 
 }
+
+// --- CITY AUTOCOMPLETE LOGIC ---
+function handleCityInput(input) {
+    const query = input.value;
+    const list = document.getElementById('city-suggestions');
+
+    // Reset tijdelijke selectie als gebruiker weer gaat typen
+    tempWeatherLoc = null;
+
+    // Als input te kort is, verberg lijst
+    if (query.length < 2) {
+        list.style.display = 'none';
+        return;
+    }
+
+    // Debounce: Wacht 300ms nadat de gebruiker stopt met typen
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => fetchCitySuggestions(query), 300);
+}
+
+async function fetchCitySuggestions(query) {
+    const list = document.getElementById('city-suggestions');
+    try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=5&language=en&format=json`);
+        const data = await res.json();
+
+        list.innerHTML = ''; // Maak lijst leeg
+
+        if (data.results && data.results.length > 0) {
+            list.style.display = 'block';
+            data.results.forEach(loc => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                
+                // Toon Stad + Land + Regio
+                const extraInfo = [loc.admin1, loc.country].filter(Boolean).join(', ');
+                
+                item.innerHTML = `
+                    <span>${loc.name}</span>
+                    <span class="suggestion-detail">${extraInfo}</span>
+                `;
+
+                // Klik event
+                item.onclick = () => selectCity(loc);
+                list.appendChild(item);
+            });
+        } else {
+            list.style.display = 'none';
+        }
+    } catch (e) {
+        console.error("Search error", e);
+    }
+}
+
+function selectCity(loc) {
+    const input = document.getElementById('settingCity');
+    const list = document.getElementById('city-suggestions');
+
+    // Vul input en sla data tijdelijk op
+    input.value = loc.name;
+    tempWeatherLoc = {
+        name: loc.name,
+        lat: loc.latitude,
+        lon: loc.longitude
+    };
+
+    list.style.display = 'none'; // Verberg lijst
+}
+
+// Sluit de lijst als je ergens anders klikt
+document.addEventListener('click', (e) => {
+    const list = document.getElementById('city-suggestions');
+    const input = document.getElementById('settingCity');
+    if (e.target !== list && e.target !== input) {
+        list.style.display = 'none';
+    }
+});
 
 // --- UTILS ---
 function handleFileUpload(input) {
