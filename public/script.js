@@ -208,7 +208,9 @@ function renderApps() {
                 <${tag} ${href} class="service-card" id="card-${app.id}" ${draggableAttr}>
                     ${isEditMode ? `<button class="action-btn btn-delete" onclick="deleteApp(${app.id})"><i class="fas fa-times"></i></button>
                                     <button class="action-btn btn-edit" onclick="editApp(${app.id})"><i class="fas fa-pencil-alt"></i></button>` : ''}
-                    <div class="service-icon"><img src="${iconSrc}" onerror="this.src='https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/dashboard.png'"></div>
+                    <div class="service-icon">
+                        <img src="${iconSrc}" onerror="if (this.src != 'icon.png') this.src='icon.png';">
+                    </div>
                     <div class="service-info">
                         <span class="service-name">${app.name}</span>
                         <span class="service-desc">${app.desc}</span>
@@ -516,7 +518,8 @@ function tryFetchIcon() {
     const name = document.getElementById('appName').value;
     if(name.length > 2) {
         const url = `https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/${name.toLowerCase()}.png`;
-        document.getElementById('icon-preview').innerHTML = `<img src="${url}">`;
+
+        document.getElementById('icon-preview').innerHTML = `<img src="${url}" onerror="this.src='icon.png'">`;
         document.getElementById('finalIconData').value = name;
     }
 }

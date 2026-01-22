@@ -15,7 +15,6 @@
 
         body {
             color: var(--text-primary);
-            min-height: 100vh;
             padding: 20px;
             overflow-x: hidden;
         }
@@ -256,9 +255,8 @@
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
             border: 1px solid transparent;
-            /* overflow: hidden;  <-- DEZE REGEL MOET WEG OF OP VISIBLE */
             overflow: visible; 
-            position: relative; /* Nodig voor z-index */
+            position: relative; 
             transition: all 0.2s ease;
         }
 
@@ -411,3 +409,44 @@
             color: var(--text-secondary);
             font-size: 0.8rem;
         }
+/* --- Footer Styling --- */
+.footer {
+    position: fixed;
+    bottom: 20px;     
+    left: 20px;       
+    padding: 10px 15px;
+    text-align: left; 
+    background: var(--glass-bg);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    z-index: 1000;    
+    width: auto;      
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.footer p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    margin-left: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.footer a:hover {
+    color: white;
+    text-shadow: 0 0 8px var(--primary);
+}
+
+.footer i {
+    font-size: 1.1rem;
+}
