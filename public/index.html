@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeServer Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header class="header">
+            <div class="header-title">
+                <h1 id="greeting">Dashboard</h1>
+                <p id="clock">Loading...</p>
+            </div>
+            <div class="controls">
+                <button class="btn" id="editBtn" onclick="toggleEditMode()">
+                    <i class="fas fa-pen"></i> Edit
+                </button>
+                <div id="editControls" style="display: none; gap: 10px;">
+                    <button class="btn" onclick="openSettingsModal()">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                    <button class="btn" onclick="openWidgetModal()">
+                        <i class="fas fa-th-large"></i> Widgets
+                    </button>
+                    <button class="btn btn-primary" onclick="openModal()">
+                        <i class="fas fa-plus"></i> App
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="widgets-grid" id="widgets-area"></div>
+
+        <div id="main-content"></div>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2 id="modalTitle">Configure App</h2>
+            
+            <div class="form-group">
+                <label>Category (Section)</label>
+                <input type="text" id="appCategory" list="category-suggestions" placeholder="e.g. Media, System...">
+                <datalist id="category-suggestions"></datalist>
+            </div>
+
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="appName" placeholder="e.g. Immich" oninput="tryFetchIcon()">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="appDesc" placeholder="Short description">
+            </div>
+            <div class="form-group">
+                <label>URL (Full path allowed)</label>
+                <input type="text" id="appUrl" placeholder="192.168.x.x or domain.com/app">
+                <p style="font-size: 0.7rem; color: #888; margin-top: 5px;">"http://" is added automatically if missing.</p>
+            </div>
+            
+            <div class="form-group">
+                <label>Icon</label>
+                <input type="file" id="appIconFile" accept="image/*" onchange="handleFileUpload(this)">
+                <div id="icon-preview"><i class="fas fa-image"></i></div>
+                <input type="hidden" id="finalIconData">
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveApp()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="widgetModal">
+        <div class="modal">
+            <h2>Manage Widgets</h2>
+            <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 20px;">Click to toggle visibility</p>
+            <div id="widget-options-list"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="closeWidgetModal()">Close & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>Dashboard Settings</h2>
+            
+            <div class="form-group">
+                <label>Weather Location (City)</label>
+                <input type="text" id="settingCity" placeholder="e.g. Amsterdam">
+                <p style="font-size: 0.7rem; color: #888; margin-top: 5px;">Click Save to search coordinates automatically.</p>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeSettingsModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
