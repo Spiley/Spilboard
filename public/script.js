@@ -393,14 +393,14 @@ async function saveSettings() {
     // 1. Weather Logic
     const inputCity = document.getElementById('settingCity').value;
     
-    // Hebben we een stad gekozen uit de lijst?
+
     if (tempWeatherLoc && tempWeatherLoc.name === inputCity) {
-        // Ja, gebruik de precieze data uit de lijst
+
         dashboardData.settings.weatherCity = tempWeatherLoc.name;
         dashboardData.settings.weatherLat = tempWeatherLoc.lat;
         dashboardData.settings.weatherLon = tempWeatherLoc.lon;
     } 
-    // Nee, maar de tekst is wel veranderd? Dan zoeken we "blind" de eerste hit
+   
     else if (inputCity && inputCity !== dashboardData.settings.weatherCity) {
         try {
             const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${inputCity}&count=1&language=en&format=json`);
@@ -412,7 +412,7 @@ async function saveSettings() {
                 dashboardData.settings.weatherLon = loc.longitude;
             } else {
                 alert("City not found. Please try selecting from the list.");
-                return; // Stop opslaan
+                return; 
             }
         } catch(e) {
             alert("Error searching city.");
@@ -420,7 +420,7 @@ async function saveSettings() {
         }
     }
 
-    // 2. Background Logic (ongewijzigd, maar wel nodig)
+    // 2. Background Logic 
     const bgType = document.getElementById('bgType').value;
     dashboardData.settings.bgType = bgType;
 
@@ -444,16 +444,16 @@ function handleCityInput(input) {
     const query = input.value;
     const list = document.getElementById('city-suggestions');
 
-    // Reset tijdelijke selectie als gebruiker weer gaat typen
+    
     tempWeatherLoc = null;
 
-    // Als input te kort is, verberg lijst
+    
     if (query.length < 2) {
         list.style.display = 'none';
         return;
     }
 
-    // Debounce: Wacht 300ms nadat de gebruiker stopt met typen
+   
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => fetchCitySuggestions(query), 300);
 }
@@ -464,7 +464,7 @@ async function fetchCitySuggestions(query) {
         const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=5&language=en&format=json`);
         const data = await res.json();
 
-        list.innerHTML = ''; // Maak lijst leeg
+        list.innerHTML = ''; 
 
         if (data.results && data.results.length > 0) {
             list.style.display = 'block';
@@ -472,7 +472,7 @@ async function fetchCitySuggestions(query) {
                 const item = document.createElement('div');
                 item.className = 'suggestion-item';
                 
-                // Toon Stad + Land + Regio
+                
                 const extraInfo = [loc.admin1, loc.country].filter(Boolean).join(', ');
                 
                 item.innerHTML = `
@@ -480,7 +480,7 @@ async function fetchCitySuggestions(query) {
                     <span class="suggestion-detail">${extraInfo}</span>
                 `;
 
-                // Klik event
+                
                 item.onclick = () => selectCity(loc);
                 list.appendChild(item);
             });
@@ -496,7 +496,7 @@ function selectCity(loc) {
     const input = document.getElementById('settingCity');
     const list = document.getElementById('city-suggestions');
 
-    // Vul input en sla data tijdelijk op
+    
     input.value = loc.name;
     tempWeatherLoc = {
         name: loc.name,
@@ -504,10 +504,10 @@ function selectCity(loc) {
         lon: loc.longitude
     };
 
-    list.style.display = 'none'; // Verberg lijst
+    list.style.display = 'none'; 
 }
 
-// Sluit de lijst als je ergens anders klikt
+
 document.addEventListener('click', (e) => {
     const list = document.getElementById('city-suggestions');
     const input = document.getElementById('settingCity');
