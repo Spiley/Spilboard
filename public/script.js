@@ -440,21 +440,21 @@ async function updateRealStats() {
         const response = await fetch('/api/stats');
         const data = await response.json();
 
-        // CPU (Always percent)
+        // CPU
         if(document.getElementById('cpu-bar')) {
-            const val = data.cpu;
+            const val = data.cpu || 0;
             document.getElementById('cpu-val').innerText = val + "%";
             document.getElementById('cpu-bar').style.width = val + "%";
         }
 
-        // TEMP (Always value)
+        // TEMP
         if(document.getElementById('temp-bar')) {
-            const val = data.temp;
+            const val = data.temp || 0;
             document.getElementById('temp-val').innerText = val + "°C";
-            document.getElementById('temp-bar').style.width = Math.min(val, 100) + "%"; // Scale to 100
+            document.getElementById('temp-bar').style.width = Math.min(val, 100) + "%";
         }
 
-        // Helper for RAM & ROM
+        // Helper voor RAM & ROM
         const updateStorageWidget = (id, current, total) => {
             const elVal = document.getElementById(`${id}-val`);
             const elSub = document.getElementById(`${id}-sub`);
@@ -462,12 +462,22 @@ async function updateRealStats() {
             
             if(!elVal) return;
 
+            // NAN CHECK: Als total 0 of ongeldig is, zet alles op 0
+            if (!total || total <= 0) {
+                elVal.innerText = "-";
+                elBar.style.width = "0%";
+                return;
+            }
+
             const mode = dashboardData.widgetSettings[id].display || 'percent';
-            const percent = Math.round((current / total) * 100);
+            let percent = Math.round((current / total) * 100);
             
+            // Extra veiligheid
+            if (isNaN(percent)) percent = 0;
+
             elBar.style.width = percent + "%";
             if (percent > 85) elBar.style.background = 'linear-gradient(90deg, #ff9900, #ff3333)';
-            else elBar.style.background = ''; // Reset to CSS default
+            else elBar.style.background = '';
 
             if (mode === 'percent') {
                 elVal.innerText = percent + "%";

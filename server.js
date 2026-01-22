@@ -1,7 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const si = require('systeminformation'); // New library
+const si = require('systeminformation');
 const app = express();
 const PORT = 80;
 
@@ -10,73 +10,60 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const DATA_FILE = path.join(__dirname, 'data', 'apps.json');
 
-// --- API: STATS (NIEUW) ---
-app.get('/api/stats', async (req, res) => {
-    try {
-        // Haal CPU, Geheugen en Temp op
-        const [cpu, mem, temp] = await Promise.all([
-            si.currentLoad(),
-            si.mem(),
-            si.cpuTemperature()
-        ]);
-
-        res.json({
-            cpu: Math.round(cpu.currentLoad),
-            ram: Math.round((mem.active / mem.total) * 100),
-            temp: Math.round(temp.main) || 0 // Fallback naar 0 als sensor faalt
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error fetching stats' });
-    }
-});
-
-// --- API: APPS ---
 // --- API: STATS ---
 app.get('/api/stats', async (req, res) => {
     try {
-        // Haal CPU, Geheugen, Temp en Schijf op
-        const [cpu, mem, temp, fs] = await Promise.all([
+        const [cpu, mem, temp, fsList] = await Promise.all([
             si.currentLoad(),
             si.mem(),
             si.cpuTemperature(),
             si.fsSize()
         ]);
 
-        // We pakken de eerste schijf (meestal de root /). 
-        // Of je kunt filteren op mount: '/'
-        const disk = fs.length > 0 ? fs[0] : { used: 0, size: 0 };
+        // --- DISK LOGICA ---
+        // Zoek de schijf die gemount is op '/' (root) OF pak de grootste als '/' niet bestaat
+        let disk = fsList.find(d => d.mount === '/') || fsList.sort((a, b) => b.size - a.size)[0];
+
+        // Fallback als er echt niets gevonden wordt
+        if (!disk) disk = { used: 0, size: 1 }; 
 
         res.json({
-            cpu: Math.round(cpu.currentLoad),
+            cpu: Math.round(cpu.currentLoad) || 0,
             ram: {
-                active: mem.active,
-                total: mem.total
+                active: mem.active || 0,
+                total: mem.total || 1 // Voorkom delen door 0
             },
             rom: {
-                used: disk.used,
-                size: disk.size
+                used: disk.used || 0,
+                size: disk.size || 1 // Voorkom delen door 0
             },
             temp: Math.round(temp.main) || 0
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error fetching stats' });
+        console.error("Stats Error:", error);
+        // Stuur veilige nullen terug bij errors
+        res.json({ cpu: 0, ram: { active: 0, total: 1 }, rom: { used: 0, size: 1 }, temp: 0 });
     }
 });
 
+// --- API: APPS (Ongewijzigd) ---
+app.get('/api/apps', (req, res) => {
+    if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'));
+    if (!fs.existsSync(DATA_FILE)) return res.json({}); 
+    fs.readFile(DATA_FILE, 'utf8', (err, data) => {
+        if (err) return res.status(500).json({});
+        try { res.json(JSON.parse(data)); } catch (e) { res.json({}); }
+    });
+});
+
 app.post('/api/apps', (req, res) => {
-    if (!fs.existsSync(path.join(__dirname, 'data'))) {
-        fs.mkdirSync(path.join(__dirname, 'data'));
-    }
-    const apps = req.body;
-    fs.writeFile(DATA_FILE, JSON.stringify(apps, null, 2), (err) => {
-        if (err) return res.status(500).send('Error saving data');
+    if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'));
+    fs.writeFile(DATA_FILE, JSON.stringify(req.body, null, 2), (err) => {
+        if (err) return res.status(500).send('Error');
         res.json({ success: true });
     });
 });
 
-// Vangnet route
 app.get('/', (req, res) => {
     const indexPath = path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(indexPath)) res.sendFile(indexPath);
