@@ -1,22 +1,29 @@
 // --- DATA MANAGEMENT ---
 let dashboardData = {
     apps: [],
-    
     widgetSettings: {
-        weather: { enabled: true, city: 'Amsterdam' },
+        weather: { enabled: true },
         cpu: { enabled: true },
         ram: { enabled: true, display: 'percent' }, // 'percent', 'value', 'both'
         rom: { enabled: true, display: 'both' },
         temp: { enabled: true }
+    },
+
+    settings: {
+        weatherCity: 'Amsterdam',
+        weatherLat: 52.3676,
+        weatherLon: 4.9041,
+        bgType: 'url',
+        bgValue: 'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop'
     }
 };
 
 const widgetDefinitions = [
-    { id: 'weather', name: 'Weather', icon: 'fas fa-cloud-sun', hasSettings: true, type: 'weather' },
-    { id: 'cpu', name: 'CPU Load', icon: 'fas fa-microchip', hasSettings: false },
-    { id: 'ram', name: 'RAM Usage', icon: 'fas fa-memory', hasSettings: true, type: 'storage' },
-    { id: 'rom', name: 'Disk Storage', icon: 'fas fa-hdd', hasSettings: true, type: 'storage' },
-    { id: 'temp', name: 'Temperature', icon: 'fas fa-thermometer-half', hasSettings: false }
+    { id: 'weather', name: 'Weather', icon: 'fas fa-cloud-sun', type: 'weather' },
+    { id: 'cpu', name: 'CPU Load', icon: 'fas fa-microchip', type: 'bar' },
+    { id: 'ram', name: 'RAM Usage', icon: 'fas fa-memory', type: 'storage' },
+    { id: 'rom', name: 'Disk Storage', icon: 'fas fa-hdd', type: 'storage' },
+    { id: 'temp', name: 'Temperature', icon: 'fas fa-thermometer-half', type: 'bar' }
 ];
 
 // --- HELPERS ---
@@ -35,25 +42,19 @@ async function loadData() {
         const response = await fetch('/api/apps');
         const data = await response.json();
         
-        if (data && (data.apps || data.widgetSettings)) {
-            // Merge loaded data with defaults to ensure new fields exist
+        if (data && (data.apps || data.widgetSettings || data.settings)) {
+            //  defaults
             dashboardData.apps = data.apps || [];
-            dashboardData.widgetSettings = { ...dashboardData.widgetSettings, ...data.widgetSettings };
-            
-            // Backwards compatibility migration (old activeWidgets array)
-            if (data.activeWidgets) {
-                data.activeWidgets.forEach(w => {
-                    if (dashboardData.widgetSettings[w]) dashboardData.widgetSettings[w].enabled = true;
-                });
-                delete dashboardData.activeWidgets;
-                saveDataToServer();
-            }
+            if(data.widgetSettings) dashboardData.widgetSettings = { ...dashboardData.widgetSettings, ...data.widgetSettings };
+            if(data.settings) dashboardData.settings = { ...dashboardData.settings, ...data.settings };
         } else {
+         
             saveDataToServer();
         }
     } catch (error) {
         console.log("Offline mode or first load");
     }
+    applyBackground();
     renderAll();
 }
 
@@ -65,6 +66,42 @@ async function saveDataToServer() {
             body: JSON.stringify(dashboardData)
         });
     } catch (e) { console.error("Save failed", e); }
+}
+
+// --- BACKGROUND LOGIC ---
+function applyBackground() {
+    const bg = document.getElementById('app-background');
+    const type = dashboardData.settings.bgType || 'gradient';
+    const val = dashboardData.settings.bgValue;
+
+    // Reset
+    bg.className = '';
+    bg.style.backgroundImage = '';
+    bg.style.boxShadow = '';
+
+    if (type === 'gradient') {
+        bg.classList.add('bg-gradient');
+    } else if ((type === 'url' || type === 'upload') && val) {
+        bg.style.backgroundImage = `url('${val}')`;
+        // Dark overlay voor leesbaarheid
+        bg.style.boxShadow = "inset 0 0 0 2000px rgba(0, 0, 0, 0.4)";
+    }
+}
+
+function toggleBgInputs() {
+    const type = document.getElementById('bgType').value;
+    document.getElementById('bgInputUrlGroup').style.display = (type === 'url') ? 'block' : 'none';
+    document.getElementById('bgInputFileGroup').style.display = (type === 'upload') ? 'block' : 'none';
+}
+
+function handleBgUpload(input) {
+    if (input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('bgFileData').value = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
 }
 
 // --- RENDER LOGIC ---
@@ -82,19 +119,20 @@ function renderWidgets() {
     const container = document.getElementById('widgets-area');
     container.innerHTML = '';
     
-    // Loop through definitions to keep order
     widgetDefinitions.forEach(def => {
+        if(!dashboardData.widgetSettings[def.id]) dashboardData.widgetSettings[def.id] = { enabled: true };
+        
         const settings = dashboardData.widgetSettings[def.id];
-        if (!settings || !settings.enabled) return;
+        if (!settings.enabled) return;
 
         let content = '';
         let title = def.name;
 
         if(def.id === 'weather') {
-            title = settings.city || 'Weather';
+            title = dashboardData.settings.weatherCity || 'Weather';
             content = `<div class="widget-value" id="weather-temp">--°C</div><div class="weather-desc" id="weather-desc">Loading...</div>`;
         } else {
-            // Standard bar widget (CPU, RAM, ROM, TEMP)
+            // Stats Widgets (CPU, RAM, ROM, TEMP)
             content = `
                 <div class="widget-value" id="${def.id}-val">0%</div>
                 <div class="widget-subtext" id="${def.id}-sub" style="font-size: 0.8rem; color: var(--text-secondary); height: 1.2em;"></div>
@@ -111,6 +149,7 @@ function renderWidgets() {
         container.innerHTML += html;
     });
 
+    // Trigger updates
     updateWeather();
     updateRealStats();
 }
@@ -131,6 +170,7 @@ function renderApps() {
         const catApps = dashboardData.apps.filter(a => a.category === cat);
         const section = document.createElement('div');
         section.className = 'section-container';
+        section.setAttribute('data-category', cat); 
         
         if (isEditMode) {
             section.ondragover = (e) => { e.preventDefault(); section.classList.add('drag-over'); };
@@ -275,32 +315,18 @@ function deleteApp(id) {
     }
 }
 
-// --- WIDGET MODAL LOGIC ---
+// --- WIDGET MODAL (Enable/Disable & Display Mode) ---
 function openWidgetModal() {
     const list = document.getElementById('widget-options-list');
     list.innerHTML = '';
     
     widgetDefinitions.forEach(def => {
-        // Zorg dat er een default settings object is
-        if (!dashboardData.widgetSettings[def.id]) {
-            dashboardData.widgetSettings[def.id] = { enabled: false };
-        }
+        if (!dashboardData.widgetSettings[def.id]) dashboardData.widgetSettings[def.id] = { enabled: false };
         const settings = dashboardData.widgetSettings[def.id];
         
         let configHTML = '';
 
-        // WEATHER CONFIG
-        if (def.type === 'weather') {
-            configHTML = `
-                <div class="widget-config">
-                    <label>City Name</label>
-                    <input type="text" class="setting-city" data-id="${def.id}" value="${settings.city || 'Amsterdam'}" placeholder="London">
-                    <label style="margin-top:5px; font-size:0.7rem; color:#aaa">Coordinates are fetched automatically on save.</label>
-                </div>
-            `;
-        } 
-        // RAM/ROM CONFIG
-        else if (def.type === 'storage') {
+        if (def.type === 'storage') {
             const currentMode = settings.display || 'percent';
             configHTML = `
                 <div class="widget-config">
@@ -333,26 +359,7 @@ function toggleWidget(headerEl, id) {
     dashboardData.widgetSettings[id].enabled = item.classList.contains('selected');
 }
 
-async function closeWidgetModal() {
-    // 1. Save all inputs from the modal
-    const inputs = document.querySelectorAll('.setting-city');
-    for (const input of inputs) {
-        const id = input.dataset.id;
-        const city = input.value;
-        if(city && city !== dashboardData.widgetSettings[id].city) {
-            // Fetch coords
-            try {
-                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
-                const data = await res.json();
-                if(data.results && data.results.length > 0) {
-                    dashboardData.widgetSettings[id].city = data.results[0].name;
-                    dashboardData.widgetSettings[id].lat = data.results[0].latitude;
-                    dashboardData.widgetSettings[id].lon = data.results[0].longitude;
-                }
-            } catch(e) {}
-        }
-    }
-
+function closeWidgetModal() {
     const selects = document.querySelectorAll('.setting-display');
     selects.forEach(sel => {
         const id = sel.dataset.id;
@@ -364,7 +371,58 @@ async function closeWidgetModal() {
     renderWidgets();
 }
 
-// --- UTILS (Icons, Pings, Stats) ---
+// --- SETTINGS MODAL (Weather & Background) ---
+function openSettingsModal() {
+    // Weather
+    document.getElementById('settingCity').value = dashboardData.settings.weatherCity || '';
+    
+    // Background
+    const bgType = dashboardData.settings.bgType || 'gradient';
+    document.getElementById('bgType').value = bgType;
+    document.getElementById('bgUrl').value = (bgType === 'url') ? (dashboardData.settings.bgValue || '') : '';
+    document.getElementById('bgFile').value = ''; 
+    
+    toggleBgInputs();
+    document.getElementById('settingsModal').style.display = 'flex';
+}
+
+function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
+
+async function saveSettings() {
+    // 1. Weather Logic
+    const city = document.getElementById('settingCity').value;
+    if(city && city !== dashboardData.settings.weatherCity) {
+        try {
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
+            const data = await res.json();
+            if(data.results && data.results.length > 0) {
+                dashboardData.settings.weatherCity = data.results[0].name;
+                dashboardData.settings.weatherLat = data.results[0].latitude;
+                dashboardData.settings.weatherLon = data.results[0].longitude;
+            }
+        } catch(e) {}
+    }
+
+    // 2. Background Logic
+    const bgType = document.getElementById('bgType').value;
+    dashboardData.settings.bgType = bgType;
+
+    if (bgType === 'url') {
+        dashboardData.settings.bgValue = document.getElementById('bgUrl').value;
+    } else if (bgType === 'upload') {
+        const fileData = document.getElementById('bgFileData').value;
+        if (fileData) dashboardData.settings.bgValue = fileData;
+    } else {
+        dashboardData.settings.bgValue = ''; 
+    }
+
+    applyBackground();
+    saveDataToServer();
+    closeSettingsModal();
+    renderWidgets(); 
+}
+
+// --- UTILS ---
 function handleFileUpload(input) {
     if (input.files[0]) {
         const reader = new FileReader();
@@ -375,6 +433,7 @@ function handleFileUpload(input) {
         reader.readAsDataURL(input.files[0]);
     }
 }
+
 function tryFetchIcon() {
     if(document.getElementById('appIconFile').files.length > 0) return;
     const name = document.getElementById('appName').value;
@@ -384,6 +443,7 @@ function tryFetchIcon() {
         document.getElementById('finalIconData').value = name;
     }
 }
+
 async function checkPing(app) {
     const dot = document.getElementById(`dot-${app.id}`);
     const txt = document.getElementById(`txt-${app.id}`);
@@ -402,9 +462,10 @@ async function checkPing(app) {
         txt.innerText = 'Offline'; txt.style.color = 'var(--status-offline)';
     }
 }
+
 function checkAllPings() { dashboardData.apps.forEach(app => checkPing(app)); }
 
-// --- UPDATES ---
+// --- LIVE UPDATES ---
 function updateTime() {
     const now = new Date();
     document.getElementById('clock').innerText = now.toLocaleDateString('en-US', {weekday:'long', day:'numeric', month:'long'}) + ' • ' + now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
@@ -420,8 +481,8 @@ async function updateWeather() {
     if(!settings || !settings.enabled || !document.getElementById('weather-temp')) return;
     
     // Default Amsterdam if missing
-    const lat = settings.lat || 52.3676;
-    const lon = settings.lon || 4.9041;
+    const lat = dashboardData.settings.weatherLat || 52.3676;
+    const lon = dashboardData.settings.weatherLon || 4.9041;
     
     try {
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`);
@@ -454,7 +515,7 @@ async function updateRealStats() {
             document.getElementById('temp-bar').style.width = Math.min(val, 100) + "%";
         }
 
-        // Helper voor RAM & ROM
+        // Helper RAM & ROM
         const updateStorageWidget = (id, current, total) => {
             const elVal = document.getElementById(`${id}-val`);
             const elSub = document.getElementById(`${id}-sub`);
@@ -462,7 +523,7 @@ async function updateRealStats() {
             
             if(!elVal) return;
 
-            // NAN CHECK: Als total 0 of ongeldig is, zet alles op 0
+            // NAN Safety Check
             if (!total || total <= 0) {
                 elVal.innerText = "-";
                 elBar.style.width = "0%";
@@ -471,10 +532,8 @@ async function updateRealStats() {
 
             const mode = dashboardData.widgetSettings[id].display || 'percent';
             let percent = Math.round((current / total) * 100);
-            
-            // Extra veiligheid
             if (isNaN(percent)) percent = 0;
-
+            
             elBar.style.width = percent + "%";
             if (percent > 85) elBar.style.background = 'linear-gradient(90deg, #ff9900, #ff3333)';
             else elBar.style.background = '';
@@ -492,10 +551,14 @@ async function updateRealStats() {
         };
 
         // RAM
-        if(data.ram) updateStorageWidget('ram', data.ram.active, data.ram.total);
+        if(data.ram && dashboardData.widgetSettings.ram.enabled) {
+            updateStorageWidget('ram', data.ram.active, data.ram.total);
+        }
         
         // ROM
-        if(data.rom) updateStorageWidget('rom', data.rom.used, data.rom.size);
+        if(data.rom && dashboardData.widgetSettings.rom.enabled) {
+            updateStorageWidget('rom', data.rom.used, data.rom.size);
+        }
 
     } catch (e) {
         console.error("Stats offline", e);

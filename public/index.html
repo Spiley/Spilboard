@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="app-background"></div>
 
     <div class="container">
         <header class="header">
@@ -20,6 +21,9 @@
                     <i class="fas fa-pen"></i> Edit
                 </button>
                 <div id="editControls" style="display: none; gap: 10px;">
+                    <button class="btn" onclick="openSettingsModal()">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
                     <button class="btn" onclick="openWidgetModal()">
                         <i class="fas fa-th-large"></i> Widgets
                     </button>
@@ -77,6 +81,45 @@
 
             <div class="modal-buttons">
                 <button class="btn btn-primary" onclick="closeWidgetModal()">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>Dashboard Settings</h2>
+            
+            <h3 style="margin-top: 10px; font-size: 0.9rem; text-transform: uppercase; color: var(--primary);">Weather</h3>
+            <div class="form-group">
+                <label>Location (City)</label>
+                <input type="text" id="settingCity" placeholder="e.g. Amsterdam">
+            </div>
+
+            <h3 style="margin-top: 20px; font-size: 0.9rem; text-transform: uppercase; color: var(--primary);">Background</h3>
+            <div class="form-group">
+                <label>Type</label>
+                <select id="bgType" onchange="toggleBgInputs()">
+                    <option value="gradient">Default (Animated Gradient)</option>
+                    <option value="url">Image URL</option>
+                    <option value="upload">Upload Image</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="bgInputUrlGroup" style="display:none;">
+                <label>Image URL</label>
+                <input type="text" id="bgUrl" placeholder="https://source.unsplash.com/...">
+            </div>
+
+            <div class="form-group" id="bgInputFileGroup" style="display:none;">
+                <label>Upload File</label>
+                <input type="file" id="bgFile" accept="image/*" onchange="handleBgUpload(this)">
+                <input type="hidden" id="bgFileData">
+                <p style="font-size: 0.7rem; color: #aaa; margin-top: 5px;">Note: Large images may slow down saving.</p>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeSettingsModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
             </div>
         </div>
     </div>
