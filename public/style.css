@@ -256,8 +256,12 @@
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
             border: 1px solid transparent;
-            overflow: hidden;
+            /* overflow: hidden;  <-- DEZE REGEL MOET WEG OF OP VISIBLE */
+            overflow: visible; 
+            position: relative; /* Nodig voor z-index */
+            transition: all 0.2s ease;
         }
+
 
         .widget-header {
             display: flex;

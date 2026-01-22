@@ -1,16 +1,15 @@
 # Dependency directories
 node_modules/
 
-# Optional npm cache directory
+# npm cache directory
 .npm
 
 # System files
 .DS_Store
 Thumbs.db
 
-# YOUR DATA (Very Important)
 data/
 apps.json
 
-# Environment variables (if you ever add them)
+# Environment variables 
 .env
