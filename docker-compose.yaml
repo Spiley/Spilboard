@@ -1,13 +1,13 @@
 version: '3'
 services:
   dashboard:
-    build: .
-    container_name: Spilboard
+    image: spiley/spilboard-dashboard:latest
+    container_name: spilboard-dashboard
     restart: unless-stopped
-    privileged: true 
+    # Privileged is needed for CPU/RAM/Temp stats
+    privileged: true
     ports:
-      - "80:80"
+      - "80:80" #change if needed (ie. 8080:80)
     volumes:
+      # settingsdata
       - ./data:/app/data
-      #  uncomment this is temp is not working:
-      # - /sys/class/thermal:/sys/class/thermal:ro
