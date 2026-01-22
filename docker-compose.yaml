@@ -2,7 +2,7 @@ version: '3'
 services:
   dashboard:
     build: .
-    container_name: my-dashboard
+    container_name: Spilboard
     restart: unless-stopped
     privileged: true 
     ports:
